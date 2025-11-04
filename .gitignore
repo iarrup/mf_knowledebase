@@ -19,3 +19,6 @@ logs/
 # IDE
 .vscode/
 .idea/
+
+# Data
+/data/external

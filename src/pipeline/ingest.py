@@ -9,14 +9,14 @@ from src.core.models import Program
 from src.analysis.cobol_parser import parse_program
 from src.core.logger import setup_logging
 
+from src.pipeline.data_loader import load_data_source
+
 logger = logging.getLogger(__name__)
 
 # --- Configuration ---
-COBOL_DIR = Path("data/input/prog")
 COBOL_EXTENSIONS = {".cbl", ".cob", ".CBL", ".COB"}
 
 # --- Database Functions ---
-
 def get_db_connection():
     """Establishes a simple psycopg2 database connection."""
     try:
@@ -35,14 +35,21 @@ def run_ingest():
     """
     setup_logging()
     logger.info("Starting RAW COBOL ingestion pipeline...")
-    
+
+    try:
+        cobol_dir = load_data_source()
+        logger.info(f"Data source loaded. Reading from: {cobol_dir}")
+    except Exception as e:
+        logger.critical(f"Failed to load data source: {e}", exc_info=True)
+        sys.exit(1)   
+         
     files_to_process = [
-        p for p in COBOL_DIR.rglob('*') 
+        p for p in cobol_dir.rglob('*') 
         if p.is_file() and p.suffix in COBOL_EXTENSIONS
     ]
 
     if not files_to_process:
-        logger.info(f"No COBOL files found in {COBOL_DIR}. Exiting.")
+        logger.info(f"No COBOL files found in {cobol_dir}. Exiting.")
         return
 
     logger.info(f"Found {len(files_to_process)} COBOL files.")
