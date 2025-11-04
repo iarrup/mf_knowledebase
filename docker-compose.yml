@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  cobol-ingestor-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cobol-ingestor-app:latest
+    container_name: cobol-ingestor-app
+    ports:
+      - "8000:8000"
+    depends_on:
+      # This relies on the service defined in 'db/docker-compose.yml'
+      # It assumes the container 'postgres-age-vector' is running.
+      # We define it as 'external' to link them.
+      postgres-age-vector:
+        condition: service_healthy
+    environment:
+      # IMPORTANT: Use the Docker container name for the host
+      - DATABASE_URL=postgresql://admin:admin@postgres-age-vector:5432/cobol_db
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - LOG_LEVEL=${LOG_LEVEL}
+    volumes:
+      # Mount the data directory so the container sees your local files
+      - ./data:/app/data
+      - ./logs:/app/logs
+    networks:
+      - cobol_net
+
+networks:
+  cobol_net:
+    # This tells Docker Compose to use the network created
+    # by the 'db/docker-compose.yml' file.
+    # The default network name is 'db_default'.
+    external:
+      name: db_default
+
+# Define the external database service
+services:
+  postgres-age-vector:
+    external: true
+    container_name: postgres-age-vector

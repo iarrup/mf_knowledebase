@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# Environment
+.env
+*.env.local
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# Reports
+/reports/
+
+# IDE
+.vscode/
+.idea/

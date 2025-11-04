@@ -1,0 +1,23 @@
+# langchain dependencies
+langchain
+langchain-core
+langchain-openai
+langchain-google-genai
+langchain-text-splitters
+
+# database dependencies
+psycopg2-binary
+pgvector
+pydantic
+
+# settings management
+pydantic-settings
+
+# api framework
+fastapi
+uvicorn[standard]
+
+# web framework
+streamlit
+requests
+

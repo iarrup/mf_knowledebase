@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  postgres-age-vector:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: postgres-age-pgvector:latest
+    container_name: postgres-age-vector
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d  # Runs init.sql on first start
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=cobol_db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d cobol_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
