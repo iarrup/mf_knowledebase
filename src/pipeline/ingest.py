@@ -125,7 +125,5 @@ def run_ingest():
     logger.info("\nRaw ingestion pipeline complete.")
 
 
-
-
 if __name__ == "__main__":
     run_ingest()
