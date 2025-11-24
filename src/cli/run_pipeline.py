@@ -43,20 +43,38 @@ def print_banner(step_name: str, description: str):
     border = "=" * 60
     logger.info(f"\n{border}\n🚀 STARTING STEP: {step_name.upper()}\nℹ️  {description}\n{border}")
 
+def print_steps():
+    """Helper to print available steps to stdout."""
+    print("\nAvailable Pipeline Steps:")
+    for i, step in enumerate(PIPELINE_STEPS):
+        print(f"  {i+1}. {step['name']:<10} - {step['description']}")
+    print("")
+
 def main():
-    parser = argparse.ArgumentParser(description="Run the Mainframe Analysis Pipeline")
+    # Construct a detailed help string for the --help output
+    step_details = "\n".join([f"  * {s['name']}: {s['description']}" for s in PIPELINE_STEPS])
+    
+    parser = argparse.ArgumentParser(
+        description="Run the Mainframe Analysis Pipeline.\n\nAvailable Steps:\n" + step_details,
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     
     step_names = [s["name"] for s in PIPELINE_STEPS]
     
-    # Create a mutually exclusive group so user can't use both flags
+    # Mutually exclusive group: user must choose ONE mode of operation
     group = parser.add_mutually_exclusive_group()
+    
+    group.add_argument(
+        "--all",
+        action="store_true",
+        help="Run the ENTIRE pipeline sequentially (setup -> ingest -> process -> stories)."
+    )
     
     group.add_argument(
         "--start-from",
         type=str,
         choices=step_names,
-        default="setup", # Default behavior is to run full pipeline
-        help="The step to start processing from. Runs this step and all subsequent steps."
+        help="Start from a specific step and run all subsequent steps."
     )
     
     group.add_argument(
@@ -69,44 +87,49 @@ def main():
     parser.add_argument(
         "--list-steps",
         action="store_true",
-        help="List all available pipeline steps and exit."
+        help="List available steps and exit."
     )
+
+    # 1. Handle "No Arguments" case
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
 
     args = parser.parse_args()
     setup_logging()
 
-    # Handle --list-steps
+    # 2. Handle List Steps
     if args.list_steps:
-        print("\nAvailable Pipeline Steps:")
-        for i, step in enumerate(PIPELINE_STEPS):
-            print(f"  {i+1}. {step['name']:<10} - {step['description']}")
+        print_steps()
         sys.exit(0)
 
-    # Execution Loop
-    total_start_time = time.time()
-    
-    # 1. Determine execution strategy
-    if args.only:
-        # Run ONLY one step
+    # 3. Determine Execution Strategy
+    steps_to_run = []
+
+    if args.all:
+        logger.info("Pipeline initialized. Mode: FULL SEQUENCE (--all)")
+        steps_to_run = PIPELINE_STEPS
+
+    elif args.only:
         target_step_name = args.only
-        logger.info(f"Pipeline initialized. Running ONLY step: '{target_step_name}'")
-        
-        # Find the single step dict
+        logger.info(f"Pipeline initialized. Mode: SINGLE STEP (--only {target_step_name})")
         steps_to_run = [s for s in PIPELINE_STEPS if s["name"] == target_step_name]
         
-    else:
-        # Run SEQUENCE starting from start_from
+    elif args.start_from:
         start_step_name = args.start_from
-        logger.info(f"Pipeline initialized. Starting SEQUENCE from step: '{start_step_name}'")
-        
-        try:
-            start_index = step_names.index(start_step_name)
-            steps_to_run = PIPELINE_STEPS[start_index:]
-        except ValueError:
-            logger.critical(f"Invalid start step: {start_step_name}")
-            sys.exit(1)
+        logger.info(f"Pipeline initialized. Mode: RESUME SEQUENCE (--start-from {start_step_name})")
+        start_index = step_names.index(start_step_name)
+        steps_to_run = PIPELINE_STEPS[start_index:]
 
-    # 2. Execute selected steps
+    # 4. Execute Logic
+    if not steps_to_run:
+        # Should be caught by the sys.argv check, but safety fallback
+        print("No action selected.")
+        print_steps()
+        sys.exit(0)
+
+    total_start_time = time.time()
+
     for step in steps_to_run:
         step_start_time = time.time()
         print_banner(step['name'], step['description'])
